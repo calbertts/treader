@@ -1,8 +1,7 @@
 /*
- * QuickJS Read Eval Print Loop
+ * Treader Read Eval Print Loop
  *
- * Copyright (c) 2017-2019 Fabrice Bellard
- * Copyright (c) 2017-2019 Charlie Gordon
+ * Copyright (c) 2020 Carlos Alberto Castaño G.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-"use strip";
 
 import * as std from "std";
 import * as os from "os";
 
 (function(g) {
-    /* add 'os' and 'std' bindings */
     g.os = os;
     g.std = std;
 
@@ -119,7 +116,7 @@ import * as os from "os";
     var pstate = "";
     var prompt = "";
     var plen = 0;
-    var ps1 = "@calbertts quickjs $ ";
+    var ps1 = "treader $ ";
     var ps2 = "  ... ";
     var utf8 = true;
     var show_time = false;
@@ -173,6 +170,7 @@ import * as os from "os";
 
     function sigint_handler() {
         // send Ctrl-C to readline
+        //os.exec(['rm', 'std.out'])
         handle_byte(3);
     }
 
@@ -214,16 +212,6 @@ import * as os from "os";
         return typeof c === "string" &&
             (is_alpha(c) || is_digit(c) || c == '_' || c == '$');
     }
-
-    /*function is_balanced(a, b) {
-        switch (a + b) {
-        case "()":
-        case "[]":
-        case "{}":
-            return true;
-        }
-        return false;
-    }*/
 
     function print_color_text(str, start, style_names) {
         var i, j;
@@ -350,7 +338,7 @@ import * as os from "os";
             cursor_pos--;
     }
 
-    /*function skip_word_forward(pos) {
+    function skip_word_forward(pos) {
         while (pos < cmd.length && !is_word(cmd.charAt(pos)))
             pos++;
         while (pos < cmd.length && is_word(cmd.charAt(pos)))
@@ -364,7 +352,7 @@ import * as os from "os";
         while (pos > 0 && is_word(cmd.charAt(pos - 1)))
             pos--;
         return pos;
-    }*/
+    }
 
     function forward_word() {
         cursor_pos = skip_word_forward(cursor_pos);
@@ -446,6 +434,7 @@ import * as os from "os";
     function control_d() {
         if (cmd.length == 0) {
             std.puts("\n");
+            os.exec(['say', 'Cerrando el asistente'])
             return -3; // exit read eval print loop
         } else {
             delete_char_dir(1);
@@ -547,151 +536,8 @@ import * as os from "os";
         cursor_pos = 0;
     }
 
-    /*function get_context_word(line, pos) {
-        var s = "";
-        while (pos > 0 && is_word(line[pos - 1])) {
-            pos--;
-            s = line[pos] + s;
-        }
-        return s;
-    }
-    function get_context_object(line, pos) {
-        var obj, base, c;
-        if (pos <= 0 || " ~!%^&*(-+={[|:;,<>?/".indexOf(line[pos - 1]) >= 0)
-            return g;
-        if (pos >= 2 && line[pos - 1] === ".") {
-            pos--;
-            obj = {};
-            switch (c = line[pos - 1]) {
-            case '\'':
-            case '\"':
-                return "a";
-            case ']':
-                return [];
-            case '}':
-                return {};
-            case '/':
-                return / /;
-            default:
-                if (is_word(c)) {
-                    base = get_context_word(line, pos);
-                    if (["true", "false", "null", "this"].includes(base) || !isNaN(+base))
-                        return eval(base);
-                    obj = get_context_object(line, pos - base.length);
-                    if (obj === null || obj === void 0)
-                        return obj;
-                    if (obj === g && obj[base] === void 0)
-                        return eval(base);
-                    else
-                        return obj[base];
-                }
-                return {};
-            }
-        }
-        return void 0;
-    }
-
-    function get_completions(line, pos) {
-        var s, obj, ctx_obj, r, i, j, paren;
-
-        s = get_context_word(line, pos);
-        ctx_obj = get_context_object(line, pos - s.length);
-        r = [];
-        // enumerate properties from object and its prototype chain, add non-numeric regular properties with s as e prefix
-        for (i = 0, obj = ctx_obj; i < 10 && obj !== null && obj !== void 0; i++) {
-            var props = Object.getOwnPropertyNames(obj);
-            // add non-numeric regular properties
-            for (j = 0; j < props.length; j++) {
-                var prop = props[j];
-                if (typeof prop == "string" && ""+(+prop) != prop && prop.startsWith(s))
-                    r.push(prop);
-            }
-            obj = Object.getPrototypeOf(obj);
-        }
-        if (r.length > 1) {
-            // sort list with internal names last and remove duplicates
-            function symcmp(a, b) {
-                if (a[0] != b[0]) {
-                    if (a[0] == '_')
-                        return 1;
-                    if (b[0] == '_')
-                        return -1;
-                }
-                if (a < b)
-                    return -1;
-                if (a > b)
-                    return +1;
-                return 0;
-            }
-            r.sort(symcmp);
-            for(i = j = 1; i < r.length; i++) {
-                if (r[i] != r[i - 1])
-                    r[j++] = r[i];
-            }
-            r.length = j;
-        }
-        // 'tab' = list of completions, 'pos' = cursor position inside the completions
-        return { tab: r, pos: s.length, ctx: ctx_obj };
-    }
-
     function completion() {
-        var tab, res, s, i, j, len, t, max_width, col, n_cols, row, n_rows;
-        res = get_completions(cmd, cursor_pos);
-        tab = res.tab;
-        if (tab.length === 0)
-            return;
-        s = tab[0];
-        len = s.length;
-        // add the chars which are identical in all the completions
-        for(i = 1; i < tab.length; i++) {
-            t = tab[i];
-            for(j = 0; j < len; j++) {
-                if (t[j] !== s[j]) {
-                    len = j;
-                    break;
-                }
-            }
-        }
-        for(i = res.pos; i < len; i++) {
-            insert(s[i]);
-        }
-        if (last_fun === completion && tab.length == 1) {
-            // append parentheses to function names
-            var m = res.ctx[tab[0]];
-            if (typeof m == "function") {
-                insert('(');
-                if (m.length == 0)
-                    insert(')');
-            } else if (typeof m == "object") {
-                insert('.');
-            }
-        }
-        // show the possible completions
-        if (last_fun === completion && tab.length >= 2) {
-            max_width = 0;
-            for(i = 0; i < tab.length; i++)
-                max_width = Math.max(max_width, tab[i].length);
-            max_width += 2;
-            n_cols = Math.max(1, Math.floor((term_width + 1) / max_width));
-            n_rows = Math.ceil(tab.length / n_cols);
-            std.puts("\n");
-            // display the sorted list column-wise
-            for (row = 0; row < n_rows; row++) {
-                for (col = 0; col < n_cols; col++) {
-                    i = col * n_rows + row;
-                    if (i >= tab.length)
-                        break;
-                    s = tab[i];
-                    if (col != n_cols - 1)
-                        s = s.padEnd(max_width);
-                    std.puts(s);
-                }
-                std.puts("\n");
-            }
-            // show a new prompt
-            readline_print_prompt();
-        }
-    }*/
+    }
 
     var commands = {        // command table
         "\x01":     beginning_of_line,      // ^A - bol
@@ -702,7 +548,7 @@ import * as os from "os";
         "\x06":     forward_char,           // ^F - forward-char
         "\x07":     abort,                  // ^G - bell
         "\x08":     backward_delete_char,   // ^H - backspace
-        //"\x09":     completion,             // ^I - history-search-backward
+        "\x09":     completion,             // ^I - history-search-backward
         "\x0a":     accept_line,            // ^J - newline
         "\x0b":     kill_line,              // ^K - delete to end of line
         "\x0d":     accept_line,            // ^M - enter
@@ -981,155 +827,6 @@ import * as os from "os";
     }
 
     var hex_mode = false;
-    /*var eval_mode = "std";
-
-    function bignum_typeof(a) {
-        "use bigint";
-        return typeof a;
-    }
-
-    function eval_mode_typeof(a) {
-        if (eval_mode === "std")
-            return typeof a;
-        else
-            return bignum_typeof(a);
-    }
-
-    function number_to_string(a, radix) {
-        var s;
-        if (!isFinite(a)) {
-            // NaN, Infinite
-            if (typeof a === "bigfloat" && eval_mode !== "math") {
-                return "BigFloat(" + a.toString() + ")";
-            } else {
-                return a.toString();
-            }
-        } else {
-            if (a == 0) {
-                if (1 / a < 0)
-                    s = "-0";
-                else
-                    s = "0";
-            } else {
-                if (radix == 16) {
-                    var s;
-                    if (a < 0) {
-                        a = -a;
-                        s = "-";
-                    } else {
-                        s = "";
-                    }
-                    s += "0x" + a.toString(16);
-                } else {
-                    s = a.toString();
-                }
-            }
-            if (typeof a === "bigfloat" && eval_mode !== "math") {
-                s += "l";
-            } else if (eval_mode !== "std" && s.indexOf(".") < 0 &&
-                ((radix == 16 && s.indexOf("p") < 0) ||
-                 (radix == 10 && s.indexOf("e") < 0))) {
-                // add a decimal point so that the floating point type is visible
-                s += ".0";
-            }
-            return s;
-        }
-    }
-
-    function bigint_to_string(a, radix) {
-        var s;
-        if (radix == 16) {
-            var s;
-            if (a < 0) {
-                a = -a;
-                s = "-";
-            } else {
-                s = "";
-            }
-            s += "0x" + a.toString(16);
-        } else {
-            s = a.toString();
-        }
-        if (eval_mode === "std")
-            s += "n";
-        return s;
-    }
-
-    function print(a) {
-        var stack = [];
-
-        function print_rec(a) {
-            var n, i, keys, key, type, s;
-
-            type = eval_mode_typeof(a);
-            if (type === "object") {
-                if (a === null) {
-                    std.puts(a);
-                } else if (stack.indexOf(a) >= 0) {
-                    std.puts("[circular]");
-                } else if (has_jscalc && (a instanceof Fraction ||
-                                        a instanceof Complex ||
-                                        a instanceof Mod ||
-                                        a instanceof Polynomial ||
-                                        a instanceof PolyMod ||
-                                        a instanceof RationalFunction ||
-                                        a instanceof Series)) {
-                    std.puts(a.toString());
-                } else {
-                    stack.push(a);
-                    if (Array.isArray(a)) {
-                        n = a.length;
-                        std.puts("[ ");
-                        for(i = 0; i < n; i++) {
-                            if (i !== 0)
-                                std.puts(", ");
-                            if (i in a) {
-                                print_rec(a[i]);
-                            } else {
-                                std.puts("<empty>");
-                            }
-                            if (i > 20) {
-                                std.puts("...");
-                                break;
-                            }
-                        }
-                        std.puts(" ]");
-                    } else if (Object.__getClass(a) === "RegExp") {
-                        std.puts(a.toString());
-                    } else {
-                        keys = Object.keys(a);
-                        n = keys.length;
-                        std.puts("{ ");
-                        for(i = 0; i < n; i++) {
-                            if (i !== 0)
-                                std.puts(", ");
-                            key = keys[i];
-                            std.puts(key, ": ");
-                            print_rec(a[key]);
-                        }
-                        std.puts(" }");
-                    }
-                    stack.pop(a);
-                }
-            } else if (type === "string") {
-                s = a.__quote();
-                if (s.length > 79)
-                    s = s.substring(0, 75) + "...\"";
-                std.puts(s);
-            } else if (type === "number" || type === "bigfloat") {
-                std.puts(number_to_string(a, hex_mode ? 16 : 10));
-            } else if (type === "bigint") {
-                std.puts(bigint_to_string(a, hex_mode ? 16 : 10));
-            } else if (type === "symbol") {
-                std.puts(String(a));
-            } else if (type === "function") {
-                std.puts("function " + a.name + "()");
-            } else {
-                std.puts(a);
-            }
-        }
-        print_rec(a);
-    }*/
 
     function extract_directive(a) {
         var pos;
@@ -1141,132 +838,6 @@ import * as os from "os";
         }
         return a.substring(1, pos);
     }
-
-    // return true if the string after cmd can be evaluted as JS
-    /*function handle_directive(cmd, expr) {
-        var param, prec1, expBits1;
-
-        if (cmd === "h" || cmd === "?" || cmd == "help") {
-            help();
-        } else if (cmd === "load") {
-            var filename = expr.substring(cmd.length + 1).trim();
-            if (filename.lastIndexOf(".") <= filename.lastIndexOf("/"))
-                filename += ".js";
-            std.loadScript(filename);
-            return false;
-        } else if (cmd === "x") {
-            hex_mode = true;
-        } else if (cmd === "d") {
-            hex_mode = false;
-        } else if (cmd === "t") {
-            show_time = !show_time;
-        } else if (has_bignum && cmd === "p") {
-            param = expr.substring(cmd.length + 1).trim().split(" ");
-            if (param.length === 1 && param[0] === "") {
-                std.puts("BigFloat precision=" + prec + " bits (~" +
-                          Math.floor(prec / log2_10) +
-                          " digits), exponent size=" + expBits + " bits\n");
-            } else if (param[0] === "f16") {
-                prec = 11;
-                expBits = 5;
-            } else if (param[0] === "f32") {
-                prec = 24;
-                expBits = 8;
-            } else if (param[0] === "f64") {
-                prec = 53;
-                expBits = 11;
-            } else if (param[0] === "f128") {
-                prec = 113;
-                expBits = 15;
-            } else {
-                prec1 = parseInt(param[0]);
-                if (param.length >= 2)
-                    expBits1 = parseInt(param[1]);
-                else
-                    expBits1 = BigFloatEnv.expBitsMax;
-                if (Number.isNaN(prec1) ||
-                    prec1 < BigFloatEnv.precMin ||
-                    prec1 > BigFloatEnv.precMax) {
-                    std.puts("Invalid precision\n");
-                    return false;
-                }
-                if (Number.isNaN(expBits1) ||
-                    expBits1 < BigFloatEnv.expBitsMin ||
-                    expBits1 > BigFloatEnv.expBitsMax) {
-                    std.puts("Invalid exponent bits\n");
-                    return false;
-                }
-                prec = prec1;
-                expBits = expBits1;
-            }
-            return false;
-        } else if (has_bignum && cmd === "digits") {
-            param = expr.substring(cmd.length + 1).trim();
-            prec1 = Math.ceil(parseFloat(param) * log2_10);
-            if (prec1 < BigFloatEnv.precMin ||
-                prec1 > BigFloatEnv.precMax) {
-                std.puts("Invalid precision\n");
-                return false;
-            }
-            prec = prec1;
-            expBits = BigFloatEnv.expBitsMax;
-            return false;
-        } else if (has_bignum && cmd === "mode") {
-            param = expr.substring(cmd.length + 1).trim();
-            if (param === "") {
-                std.puts("Running mode=" + eval_mode + "\n");
-            } else if (param === "std" || param === "math" ||
-                       param === "bigint") {
-                eval_mode = param;
-            } else {
-                std.puts("Invalid mode\n");
-            }
-            return false;
-        } else if (cmd === "clear") {
-            std.puts("\x1b[H\x1b[J");
-        } else if (cmd === "q") {
-            std.exit(0);
-        } else if (has_jscalc && cmd === "a") {
-            algebraicMode = true;
-        } else if (has_jscalc && cmd === "n") {
-            algebraicMode = false;
-        } else {
-            std.puts("Unknown directive: " + cmd + "\n");
-            return false;
-        }
-        return true;
-    }
-
-    if (config_numcalc) {
-        // called by the GUI
-        g.execCmd = function (cmd) {
-            switch(cmd) {
-            case "dec":
-                hex_mode = false;
-                break;
-            case "hex":
-                hex_mode = true;
-                break;
-            case "num":
-                algebraicMode = false;
-                break;
-            case "alg":
-                algebraicMode = true;
-                break;
-            }
-        }
-    }
-
-    function help() {
-        function sel(n) {
-            return n ? "*": " ";
-        }
-        std.puts("\\h          this help\n" +
-                 "\\x         " + sel(hex_mode) + "hexadecimal number display\n" +
-                 "\\d         " + sel(!hex_mode) + "decimal number display\n" +
-                 "\\t         " + sel(show_time) + "toggle timing display\n" +
-                  "\\clear      clear the terminal\n");
-    }*/
 
     function get_voice(lang) {
       const mac_voices = {
@@ -1407,42 +978,7 @@ import * as os from "os";
           }
           os.exec(['say', lastSay[mode]]);
         }
-
-        /*if (command === 'ls') {
-          os.exec(['say', `Directorio: eci. Hay ${countOut} archivos.`], { block: true });
-        } */
         alert()
-
-        /*var result;
-
-        try {
-            if (eval_mode === "math")
-                expr = '"use math"; void 0;' + expr;
-            else if (eval_mode === "bigint")
-                expr = '"use bigint"; void 0;' + expr;
-            var now = (new Date).getTime();
-            // eval as a script
-            result = std.evalScript(expr, { backtrace_barrier: true });
-            eval_time = (new Date).getTime() - now;
-            std.puts(colors[styles.result]);
-            print(result);
-            std.puts("\n");
-            std.puts(colors.none);
-            // set the last result
-            g._ = result;
-        } catch (error) {
-            std.puts(colors[styles.error_msg]);
-            if (error instanceof Error) {
-                console.log(error);
-                if (error.stack) {
-                    std.puts(error.stack);
-                }
-            } else {
-                std.puts("Throw: ");
-                console.log(error);
-            }
-            std.puts(colors.none);
-        }*/
     }
 
     function cmd_start() {
@@ -1503,234 +1039,6 @@ import * as os from "os";
 
     function colorize_js(str) {
         return str
-        /*var i, c, start, n = str.length;
-        var style, state = "", level = 0;
-        var primary, can_regex = 1;
-        var r = [];
-
-        function push_state(c) { state += c; }
-        function last_state(c) { return state.substring(state.length - 1); }
-        function pop_state(c) {
-            var c = last_state();
-            state = state.substring(0, state.length - 1);
-            return c;
-        }
-
-        function parse_block_comment() {
-            style = 'comment';
-            push_state('/');
-            for (i++; i < n - 1; i++) {
-                if (str[i] == '*' && str[i + 1] == '/') {
-                    i += 2;
-                    pop_state('/');
-                    break;
-                }
-            }
-        }
-
-        function parse_line_comment() {
-            style = 'comment';
-            for (i++; i < n; i++) {
-                if (str[i] == '\n') {
-                    break;
-                }
-            }
-        }
-
-        function parse_string(delim) {
-            style = 'string';
-            push_state(delim);
-            while (i < n) {
-                c = str[i++];
-                if (c == '\n') {
-                    style = 'error';
-                    continue;
-                }
-                if (c == '\\') {
-                    if (i >= n)
-                        break;
-                    i++;
-                } else
-                if (c == delim) {
-                    pop_state();
-                    break;
-                }
-            }
-        }
-
-        function parse_regex() {
-            style = 'regex';
-            push_state('/');
-            while (i < n) {
-                c = str[i++];
-                if (c == '\n') {
-                    style = 'error';
-                    continue;
-                }
-                if (c == '\\') {
-                    if (i < n) {
-                        i++;
-                    }
-                    continue;
-                }
-                if (last_state() == '[') {
-                    if (c == ']') {
-                        pop_state()
-                    }
-                    // ECMA 5: ignore '/' inside char classes
-                    continue;
-                }
-                if (c == '[') {
-                    push_state('[');
-                    if (str[i] == '[' || str[i] == ']')
-                        i++;
-                    continue;
-                }
-                if (c == '/') {
-                    pop_state();
-                    while (i < n && is_word(str[i]))
-                        i++;
-                    break;
-                }
-            }
-        }
-
-        function parse_number() {
-            style = 'number';
-            while (i < n && (is_word(str[i]) || (str[i] == '.' && (i == n - 1 || str[i + 1] != '.')))) {
-                i++;
-            }
-        }
-
-        var js_keywords = "|" +
-            "break|case|catch|continue|debugger|default|delete|do|" +
-            "else|finally|for|function|if|in|instanceof|new|" +
-            "return|switch|this|throw|try|typeof|while|with|" +
-            "class|const|enum|import|export|extends|super|" +
-            "implements|interface|let|package|private|protected|" +
-            "public|static|yield|" +
-            "undefined|null|true|false|Infinity|NaN|" +
-            "eval|arguments|" +
-            "await|";
-
-        var js_no_regex = "|this|super|undefined|null|true|false|Infinity|NaN|arguments|";
-        var js_types = "|void|var|";
-
-        function parse_identifier() {
-            can_regex = 1;
-
-            while (i < n && is_word(str[i]))
-                i++;
-
-            var w = '|' + str.substring(start, i) + '|';
-
-            if (js_keywords.indexOf(w) >= 0) {
-                style = 'keyword';
-                if (js_no_regex.indexOf(w) >= 0)
-                    can_regex = 0;
-                return;
-            }
-
-            var i1 = i;
-            while (i1 < n && str[i1] == ' ')
-                i1++;
-
-            if (i1 < n && str[i1] == '(') {
-                style = 'function';
-                return;
-            }
-
-            if (js_types.indexOf(w) >= 0) {
-                style = 'type';
-                return;
-            }
-
-            style = 'identifier';
-            can_regex = 0;
-        }
-
-        function set_style(from, to) {
-            while (r.length < from)
-                r.push('default');
-            while (r.length < to)
-                r.push(style);
-        }
-
-        for (i = 0; i < n;) {
-            style = null;
-            start = i;
-            switch (c = str[i++]) {
-            case ' ':
-            case '\t':
-            case '\r':
-            case '\n':
-                continue;
-            case '+':
-            case '-':
-                if (i < n && str[i] == c) {
-                    i++;
-                    continue;
-                }
-                can_regex = 1;
-                continue;
-            case '/':
-                if (i < n && str[i] == '*') { // block comment
-                    parse_block_comment();
-                    break;
-                }
-                if (i < n && str[i] == '/') { // line comment
-                    parse_line_comment();
-                    break;
-                }
-                if (can_regex) {
-                    parse_regex();
-                    can_regex = 0;
-                    break;
-                }
-                can_regex = 1;
-                continue;
-            case '\'':
-            case '\"':
-            case '`':
-                parse_string(c);
-                can_regex = 0;
-                break;
-            case '(':
-            case '[':
-            case '{':
-                can_regex = 1;
-                level++;
-                push_state(c);
-                continue;
-            case ')':
-            case ']':
-            case '}':
-                can_regex = 0;
-                if (level > 0 && is_balanced(last_state(), c)) {
-                    level--;
-                    pop_state();
-                    continue;
-                }
-                style = 'error';
-                break;
-            default:
-                if (is_digit(c)) {
-                    parse_number();
-                    can_regex = 0;
-                    break;
-                }
-                if (is_word(c) || c == '$') {
-                    parse_identifier();
-                    break;
-                }
-                can_regex = 1;
-                continue;
-            }
-            if (style)
-                set_style(start, i);
-        }
-        set_style(n, n);
-        return [ state, level, r ];*/
     }
 
     termInit();
