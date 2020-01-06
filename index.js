@@ -29,6 +29,17 @@ import * as os from "os";
     g.os = os;
     g.std = std;
 
+    const KEY_CODES = {
+      ENTER: 13,
+      CTRL_L: 12,
+      CTRL_S: 19,
+      CTRL_F: 6,
+      CTRL_J: 10,
+      CTRL_H: 8,
+      CTRL_D: 0,
+      CTRL_Z: 0,
+    }
+
     let cur_language = null;
     let mode = 0
     let word = ''
@@ -40,13 +51,8 @@ import * as os from "os";
     let lastLang = null
 
     /* close global objects */
-    var Object = g.Object;
     var String = g.String;
-    var Array = g.Array;
-    var Date = g.Date;
     var Math = g.Math;
-    var isFinite = g.isFinite;
-    var parseFloat = g.parseFloat;
 
     /* XXX: use preprocessor ? */
     var config_numcalc = (typeof os.open === "undefined");
@@ -636,16 +642,17 @@ import * as os from "os";
     }
 
     function handle_char(c1) {
-        if (c1 === 8) {
+        if (c1 === KEY_CODES.CTRL_H) {
           os.exec(['say', 'Ayuda del Asistente de Voz en la Terminal'])
           os.exec(['say', `Presiona control C, en cualquier momento para parar el audio.
             Presiona control L, para intercambiar el idioma.
             Presiona control F, para entrar en modo detallado o super detallado.
             Presiona control J, para salir de los modos detallados.
             Presiona control S, para repetir la salida del último comando.
+            Si entras en pánico, presiona control Z o control D, para detener el proceso.
           `])
           return;
-        } else if (c1 === 6) {
+        } else if (c1 === KEY_CODES.CTRL_F) {
           if (mode === 0) {
             os.exec(['say', 'Activando modo detallado'])
             mode = 1
@@ -657,7 +664,7 @@ import * as os from "os";
           }
           alert()
           return;
-        } else if (c1 === 10) {
+        } else if (c1 === KEY_CODES.CTRL_J) {
           if (mode === 2) {
             os.exec(['say', 'Desactivando modo ultra detallado'])
             mode = 1
@@ -669,13 +676,13 @@ import * as os from "os";
           }
           alert()
           return;
-        } else if (c1 === 19) {
+        } else if (c1 === KEY_CODES.CTRL_S) {
           if (lastSay?.[cur_language || 'es_ES']?.[mode]) {
             globalThis.say({text: lastSay, lang: lastLang})
           } else {
             os.exec(['say', 'No hay nada que repetir.'])
           }
-        } else if (c1 === 12) {
+        } else if (c1 === KEY_CODES.CTRL_L) {
           if (!cur_language || cur_language === 'es_ES') {
             os.exec(['say', '-v', 'Daniel', 'Hello, my name is Daniel.'])
             cur_language = 'en_GB'
@@ -923,7 +930,8 @@ import * as os from "os";
         const fullExpr = expr.split(' ')
         const command = fullExpr[0]
 
-        const pid = os.exec(['script', '-qF', 'std.out', '/bin/bash', '-c', expr]);
+        let opts  = '-q' + (os.platform === 'darwin' ? 'F' : 'f')
+        os.exec(['script', opts, 'std.out', '/bin/bash', '-c', expr]);
 
         const out = std.open('./std.out', 'r');
         let line       = out.getline()
