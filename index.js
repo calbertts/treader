@@ -38,7 +38,11 @@ import * as os from "os";
       CTRL_H: 8,
       CTRL_D: 0,
       CTRL_Z: 0,
+      CTRL_V: 22,
+      j: 106,
+      k: 107,
     }
+    globalThis.KEY_CODES = KEY_CODES
 
     let cur_language = null;
     let mode = 0
@@ -49,6 +53,7 @@ import * as os from "os";
       2: null
     }
     let lastLang = null
+    let voiceRate = 200
 
     /* close global objects */
     var String = g.String;
@@ -322,7 +327,23 @@ import * as os from "os";
         return -2;
     }
 
+    function error() {
+      os.exec(["afplay", "/System/Library/Sounds/Basso.aiff"], { block: false });
+    }
+
+    function info() {
+      os.exec(["afplay", "/System/Library/Sounds/Submarine.aiff"], { block: false });
+    }
+
+    function commandBeep() {
+      os.exec(["afplay", "/System/Library/Sounds/Ping.aiff"], { block: false });
+    }
+
     function alert() {
+      os.exec(["afplay", "/System/Library/Sounds/Pop.aiff"], { block: false });
+    }
+
+    function promptBeep() {
       os.exec(["afplay", "/System/Library/Sounds/Funk.aiff"], { block: false });
     }
 
@@ -430,6 +451,8 @@ import * as os from "os";
                 cmd = cmd.substring(0, start) + cmd.substring(end);
                 cursor_pos = start;
             }
+        } else  {
+          promptBeep()
         }
     }
 
@@ -533,6 +556,7 @@ import * as os from "os";
         } else {
             os.exec(['say', 'Presiona control C de nuevo para salir'], {block: false})
             std.puts("\n(Presiona Ctrl-C de nuevo para salir)\n");
+            cmd = ''
             readline_print_prompt();
         }
     }
@@ -643,6 +667,7 @@ import * as os from "os";
 
     function handle_char(c1) {
         if (c1 === KEY_CODES.CTRL_H) {
+          commandBeep()
           os.exec(['say', 'Ayuda del Asistente de Voz en la Terminal'])
           os.exec(['say', `Presiona control C, en cualquier momento para parar el audio.
             Presiona control L, para intercambiar el idioma.
@@ -653,6 +678,7 @@ import * as os from "os";
           `])
           return;
         } else if (c1 === KEY_CODES.CTRL_F) {
+          commandBeep()
           if (mode === 0) {
             os.exec(['say', 'Activando modo detallado'])
             mode = 1
@@ -660,11 +686,13 @@ import * as os from "os";
             os.exec(['say', 'Activando modo super detallado'])
             mode = 2
           } else {
+            info()
             os.exec(['say', 'No hay más modos disponibles'])
           }
           alert()
           return;
         } else if (c1 === KEY_CODES.CTRL_J) {
+          commandBeep()
           if (mode === 2) {
             os.exec(['say', 'Desactivando modo ultra detallado'])
             mode = 1
@@ -672,57 +700,67 @@ import * as os from "os";
             os.exec(['say', 'Desactivando modo detallado'])
             mode = 0
           } else {
+            info()
             os.exec(['say', 'Ya estás en modo normal'])
           }
           alert()
           return;
         } else if (c1 === KEY_CODES.CTRL_S) {
+          commandBeep()
           if (lastSay?.[cur_language || 'es_ES']?.[mode]) {
+            globalThis.say({text: lastSay, lang: lastLang})
+          } else if(typeof(lastSay) === 'string') {
             globalThis.say({text: lastSay, lang: lastLang})
           } else {
             os.exec(['say', 'No hay nada que repetir.'])
           }
         } else if (c1 === KEY_CODES.CTRL_L) {
+          commandBeep()
           if (!cur_language || cur_language === 'es_ES') {
-            os.exec(['say', '-v', 'Daniel', 'Hello, my name is Daniel.'])
+            os.exec(['say', '-v', 'Daniel', '--rate', voiceRate, 'Hi, my name is Daniel.'])
             cur_language = 'en_GB'
           } else if (cur_language === 'en_GB') {
-            os.exec(['say', '-v', 'Monica', 'Hola, me llamo Monica'])
+            os.exec(['say', '-v', 'Monica', '--rate', voiceRate, 'Hola, me llamo Monica'])
             cur_language = 'es_ES'
           }
           lastLang = cur_language
           return;
-
-          /*let term_read_buf = new Uint8Array(64);
+        } else if (c1 === KEY_CODES.CTRL_V) {
+          commandBeep()
+          os.exec(['say', '-v', 'Monica', 'Control de velocidad de voz. Presiona K para aumentarla, J para disminuirla y ENTER para terminar'])
           let lang = 'Monica'
+          let pid
           os.setReadHandler(term_fd, function() {
-            let l;
             let langs = {
-              Monica: 'Hola, me llamo Monica y soy una voz española.',
-              Daniel: 'Hello, my name is Daniel. I am a British-English voice.'
+              Monica: 'Hola, soy Monica.',
+              Daniel: `Hello, I'm Daniel`
             }
-            l = os.read(term_fd, term_read_buf.buffer, 0, term_read_buf.length);
-            for(let i = 0; i < l; i++) {
-              if (term_read_buf[i] === 106) {
-                os.exec(['say', '-v', lang, langs[lang]])
-                lang = lang === 'Monica' ? 'Daniel' : 'Monica'
-              } else if (term_read_buf[i] === 13 || term_read_buf[i] === 108) {
-                if (lang === 'Daniel') {
-                  os.exec(['say', '-v', 'Monica', 'Se ha seleccionado castellano.'])
-                  cur_language = 'es_ES'
-                } else {
-                  os.exec(['say', '-v', 'Daniel', 'You have choosen english.'])
-                  cur_language = 'en_GB'
-                }
-                lastLang = cur_language
 
+            if (pid)
+              os.kill(pid, os.SIGABRT)
+
+            let term_read_buf = new Uint8Array(64);
+            let l = os.read(term_fd, term_read_buf.buffer, 0, term_read_buf.length);
+            for(let i = 0; i < l; i++) {
+
+              if (term_read_buf[i] === KEY_CODES.j) {
+                pid = os.exec(['say', '-v', lang, '--rate', voiceRate, langs[lang]], {block: false})
+                if (voiceRate ===  90) info()
+                else voiceRate -= 10
+              } else if (term_read_buf[i] === KEY_CODES.k) {
+                pid = os.exec(['say', '-v', lang, '--rate', voiceRate, langs[lang]], {block: false})
+                if (voiceRate ===  700) info()
+                else voiceRate += 10
+              } else if (term_read_buf[i] === KEY_CODES.ENTER) {
                 os.setReadHandler(term_fd, term_read_handler)
-                if (term_read_buf[i] === 13)
-                  handle_byte(term_read_buf[i])
+                handle_byte(term_read_buf[i])
                 alert()
+              } else {
+                error()
+                pid = os.exec(['say', '-v', lang, 'Opción no válida. Presiona K para aumentarla, J para disminuirla y ENTER para terminar'], {block: false})
               }
             }
-          });*/
+          });
         }
 
         var c;
@@ -917,13 +955,33 @@ import * as os from "os";
           text = args
         }
         const finalText = typeof(text) === 'string' ? text : typeof(text[lang]) === 'string' ? text[lang] : text[lang][mode]
-        os.exec(['say', '-v', get_voice(lang), finalText], opts || {});
+        os.exec(['say', '-v', get_voice(lang), '--rate', voiceRate, finalText], opts || {});
         lastSay = text
         lastLang = lang
       } catch(err) {
         os.exec(['say', '-v', get_voice(lang), `Error intentando vocalizar: ${text}`]);
         throw err
       }
+    }
+
+    globalThis.ask = function(question, validKeys) {
+      os.exec(['say', '-v', 'Monica', '--rate', voiceRate, question], {});
+      return new Promise((resolve, reject) =>  {
+        os.setReadHandler(term_fd, function() {
+          let term_read_buf = new Uint8Array(64);
+          let l = os.read(term_fd, term_read_buf.buffer, 0, term_read_buf.length);
+          const key = term_read_buf[0]
+
+          if (validKeys.includes(key)){
+            os.setReadHandler(term_fd, term_read_handler)
+            resolve(key)
+            info()
+          } else {
+            error()
+            os.exec(['say', '-v', 'Monica', `Opción no válida`])
+          }
+        });
+      })
     }
 
     function eval_and_print(expr) {
@@ -991,7 +1049,7 @@ import * as os from "os";
 
     function cmd_start() {
         if (!config_numcalc) {
-            std.puts('Bienvenido al Asistente de Voz en la Terminal\n');
+            std.puts('Bienvenido a TReader\n');
             os.exec(['say', 'Bienvenido al Asistente de Voz en la Terminal'], { block: false });
         }
 
