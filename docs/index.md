@@ -2,6 +2,49 @@
 layout: default
 ---
 
+**TReader** is a very simple proxy between the **user** and **command line** that will
+convert command output to voice by using MacOS voice synthesizer.
+
+The voice will try to translate the output to a meaningful stuff by running
+a set of handlers per command.
+
+For instance:
+```bash
+# if you run
+$ pwd
+
+# and the output is
+/home/user
+```
+**TReader** will say:
+```
+You're in your home directory
+```
+
+This is done by running a handler called `pwd.js`:
+```
+(function() {
+  let lastDir = fullOutput.split('/')
+  lastDir = lastDir[lastDir.length - 1].trim()
+
+  let absDir = fullOutput
+    .replace(/\//gm, '[[slnc 200]]/')
+    .replace(/-/gm, '[[slnc 200]]-')
+    .replace(/_/gm, '[[slnc 200]]-').trim()
+
+  say({
+    text: {
+      en_GB: {
+        0: `You're in the directory: ${lastDir}.`,
+        1: `You're in the directory: ${absDir}.`,
+        2: `You're in the directory: [[char LTRL]] ${absDir}.`
+      }
+    },
+    opts: { block: true },
+  });
+})()
+```
+
 Text can be **bold**, _italic_, ~~strikethrough~~ or `keyword`.
 
 [Link to another page](./another-page.html).

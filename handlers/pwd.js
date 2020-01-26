@@ -1,14 +1,4 @@
-(function(g) {
-  g.os = os
-  g.std = std
-
-  const {
-    say,
-    expr,
-    countOut,
-    fullOutput
-  } = g
-
+(function() {
   let lastDir = fullOutput.split('/')
   lastDir = lastDir[lastDir.length - 1].trim()
 
@@ -32,4 +22,4 @@
     },
     opts: { block: true },
   });
-})(globalThis)
+})()
