@@ -58,27 +58,29 @@ a set of handlers per command.</p>
 </code></pre></div></div>
 
 <p>This is done by running a handler called <code class="highlighter-rouge">pwd.js</code>:</p>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(function() {
-  let lastDir = fullOutput.split('/')
-  lastDir = lastDir[lastDir.length - 1].trim()
+<div class="language-js highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kd">let</span> <span class="nx">lastDir</span> <span class="o">=</span> <span class="nx">fullOutput</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="dl">'</span><span class="s1">/</span><span class="dl">'</span><span class="p">)</span>
+  <span class="nx">lastDir</span> <span class="o">=</span> <span class="nx">lastDir</span><span class="p">[</span><span class="nx">lastDir</span><span class="p">.</span><span class="nx">length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">].</span><span class="nx">trim</span><span class="p">()</span>
 
-  let absDir = fullOutput
-    .replace(/\//gm, '[[slnc 200]]/')
-    .replace(/-/gm, '[[slnc 200]]-')
-    .replace(/_/gm, '[[slnc 200]]-').trim()
+  <span class="kd">let</span> <span class="nx">absDir</span> <span class="o">=</span> <span class="nx">fullOutput</span>
+    <span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/</span><span class="se">\/</span><span class="sr">/gm</span><span class="p">,</span> <span class="dl">'</span><span class="s1">[[slnc 200]]/</span><span class="dl">'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/-/gm</span><span class="p">,</span> <span class="dl">'</span><span class="s1">[[slnc 200]]-</span><span class="dl">'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/_/gm</span><span class="p">,</span> <span class="dl">'</span><span class="s1">[[slnc 200]]-</span><span class="dl">'</span><span class="p">).</span><span class="nx">trim</span><span class="p">()</span>
 
-  say({
-    text: {
-      en_GB: {
-        0: `You're in the directory: ${lastDir}.`,
-        1: `You're in the directory: ${absDir}.`,
-        2: `You're in the directory: [[char LTRL]] ${absDir}.`
-      }
-    },
-    opts: { block: true },
-  });
-})()
+  <span class="nx">say</span><span class="p">({</span>
+    <span class="na">text</span><span class="p">:</span> <span class="p">{</span>
+      <span class="na">en_GB</span><span class="p">:</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="s2">`You're in the directory: </span><span class="p">${</span><span class="nx">lastDir</span><span class="p">}</span><span class="s2">.`</span><span class="p">,</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">`You're in the directory: </span><span class="p">${</span><span class="nx">absDir</span><span class="p">}</span><span class="s2">.`</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">`You're in the directory: [[char LTRL]] </span><span class="p">${</span><span class="nx">absDir</span><span class="p">}</span><span class="s2">.`</span>
+      <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="na">opts</span><span class="p">:</span> <span class="p">{</span> <span class="na">block</span><span class="p">:</span> <span class="kc">true</span> <span class="p">},</span>
+  <span class="p">});</span>
+<span class="p">})()</span>
 </code></pre></div></div>
+
+<p>Serveral languages can be used and custom handlers can be written.</p>
 
 <p>Text can be <strong>bold</strong>, <em>italic</em>, <del>strikethrough</del> or <code class="highlighter-rouge">keyword</code>.</p>
 

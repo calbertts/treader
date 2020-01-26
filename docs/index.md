@@ -22,7 +22,7 @@ You're in your home directory
 ```
 
 This is done by running a handler called `pwd.js`:
-```
+```js
 (function() {
   let lastDir = fullOutput.split('/')
   lastDir = lastDir[lastDir.length - 1].trim()
@@ -44,6 +44,8 @@ This is done by running a handler called `pwd.js`:
   });
 })()
 ```
+
+Serveral languages can be used and custom handlers can be written.
 
 Text can be **bold**, _italic_, ~~strikethrough~~ or `keyword`.
 
